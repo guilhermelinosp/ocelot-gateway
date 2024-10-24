@@ -12,59 +12,53 @@ var host = builder.Host;
 var services = builder.Services;
 
 // SERVICES
-services.AddHealthChecks();
+services.AddHealthChecks(); // Add other specific health checks if needed (e.g., for databases, external services)
 
+// Ocelot with Polly support
 services
-	.AddOcelot()
-	.AddPolly();
+    .AddOcelot()
+    .AddPolly();
 
 // CONFIGURATION
-configuration.AddJsonFile("gateway.json");
+configuration.AddJsonFile("gateway.json", optional: false, reloadOnChange: true);
 
-// HOST
-host.UseSerilog((host, services, logging) =>
+// HOST (Serilog setup with better configuration)
+host.UseSerilog((hostContext, loggerConfiguration) =>
 {
-	logging
-		.MinimumLevel.Warning()
-		.MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Information)
-		.MinimumLevel.Override("Serilog.AspNetCore.RequestLoggingMiddleware", LogEventLevel.Information)
+    loggerConfiguration
+        .MinimumLevel.ControlledBy(new Serilog.Core.LoggingLevelSwitch(LogEventLevel.Warning))
+        .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Information)
+        .MinimumLevel.Override("Serilog.AspNetCore.RequestLoggingMiddleware", LogEventLevel.Information)
 
-		.WriteTo.Async(write =>
-		{
-			write.Console(
-				outputTemplate:
-				"[{Timestamp:yyyy-MM-dd HH:mm:ss.fff} {Level:u3}] {ClientIp}  {ThreadId} {Message:lj} <p:{SourceContext}>{NewLine}{Exception}");
-			write.File("logs/.log", rollingInterval: RollingInterval.Day,
-				outputTemplate:
-				"[{Timestamp:yyyy-MM-dd HH:mm:ss.fff} {Level:u3}] {ClientIp}  {ThreadId} {Message:lj} <p:{SourceContext}>{NewLine}{Exception}");
-		})
-		.ReadFrom.Configuration(host.Configuration)
-		.ReadFrom.Services(services)
-		.Enrich.FromLogContext();
+        .WriteTo.Async(a => a.Console(
+            outputTemplate:
+            "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff} {Level:u3}] {ClientIp} {ThreadId} {Message:lj} <p:{SourceContext}>{NewLine}{Exception}")
+        )
+        .WriteTo.Async(a => a.File("logs/logs-.log", rollingInterval: RollingInterval.Day,
+            outputTemplate:
+            "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff} {Level:u3}] {ClientIp} {ThreadId} {Message:lj} <p:{SourceContext}>{NewLine}{Exception}")
+        )
+        .Enrich.FromLogContext()
+        .Enrich.WithClientIp()    // Adds client IP information
+        .Enrich.WithThreadId()    // Adds ThreadId for better tracking
+        .Enrich.WithMachineName() // Adds MachineName
+        .ReadFrom.Configuration(hostContext.Configuration)
+        .ReadFrom.Services((IServiceProvider)services);
 });
+
 // MIDDLEWARE
 var app = builder.Build();
 
-app.UseSerilogRequestLogging();
+app.UseSerilogRequestLogging(); // Log all HTTP requests
 
+app.UseRouting(); // Ensure routing is enabled before using middleware
+
+// Health Check endpoint at `/health`
 app.MapHealthChecks("/health", new HealthCheckOptions
 {
-	Predicate = _ => true,
-	ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+    Predicate = _ => true,
+    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
 });
-// Map controllers
-app.UseRouting();
-
-app.UseEndpoints(endpoints =>
-{
-	endpoints.MapControllers(); // Map controllers
-
-	endpoints.MapGet("/", async context =>
-	{
-		await context.Response.WriteAsync("Gateway is running!"); // Sample endpoint
-	});
-});
-
 
 // Use Ocelot as middleware
 await app.UseOcelot();

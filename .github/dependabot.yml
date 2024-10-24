@@ -1,15 +1,23 @@
-# Dependabot Configuration
-
 version: 2
 updates:
-  # Check for updates to GitHub Actions daily
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "daily"
-      
-  # Check for updates to NuGet packages daily
   - package-ecosystem: "nuget"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    assignees:
+      - guilhermelinosp
+    labels:
+      - dependencies
+      - gomod
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    assignees:
+      - guilhermelinosp
+    labels:
+      - dependencies
+      - github-actions

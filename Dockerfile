@@ -6,7 +6,7 @@ WORKDIR /source
 COPY . .
 RUN dotnet restore Ocelot.Gateway/*.csproj
 COPY . .
-WORKDIR "/source/Ocelot.Gateway"
+WORKDIR "/Ocelot.Gateway"
 RUN dotnet build *.csproj -c Release -o /app/build
 
 FROM build AS publish

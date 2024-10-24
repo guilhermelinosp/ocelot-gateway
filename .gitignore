@@ -369,4 +369,3 @@ MigrationBackup/
 FodyWeavers.xsd
 *.env/*
 .env
-gateway.json

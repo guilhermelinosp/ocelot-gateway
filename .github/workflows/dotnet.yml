@@ -13,22 +13,27 @@ jobs:
         os: [ubuntu-latest]
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: 'Setup .NET'
-      uses: actions/setup-dotnet@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.x" # Use a specific .NET version if needed
 
-    - name: Cache Dependencies
-      uses: actions/cache@v4
-      with:
-        path: '**/obj/project.assets.json'
-        key: dotnet-dependencies-${{ matrix.os }}-${{ hashFiles('**/project.assets.json') }}
-        restore-keys: |
-          dotnet-dependencies-${{ matrix.os }}-
+      - name: Cache Dependencies
+        uses: actions/cache@v4
+        with:
+          path: "**/obj/project.assets.json"
+          key: dotnet-dependencies-${{ matrix.os }}-${{ hashFiles('**/project.assets.json') }}
+          restore-keys: |
+            dotnet-dependencies-${{ matrix.os }}-
 
-    - name: Restore dependencies
-      run: dotnet restore
+      - name: Restore dependencies
+        run: dotnet restore
 
-    - name: Build
-      run: dotnet build --configuration Release --no-restore
+      - name: Build
+        run: dotnet build --configuration Release --no-restore --no-incremental
+
+      - name: Run tests
+        run: dotnet test --configuration Release --no-build --verbosity normal

@@ -1,6 +1,10 @@
 on:
   pull_request:
     branches: ["main"]
+    paths:
+      - "**/*.csproj"
+      - "**/project.assets.json"
+      - "**/*.fsproj"
 
 jobs:
   dependency:
@@ -11,16 +15,16 @@ jobs:
         os: [ubuntu-latest]
 
     steps:
-      - name: 'Checkout Repository'
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: 'Setup .NET'
+      - name: Setup .NET
         uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.x" # Specify .NET version as needed
 
-      - name: 'Restore Dependencies'
+      - name: Restore Dependencies
         run: dotnet restore
 
-      - name: 'Run Dependency Review'
+      - name: Run Dependency Review
         uses: actions/dependency-review-action@v4
-
-
