@@ -23,28 +23,27 @@ services
 configuration.AddJsonFile("gateway.json", optional: false, reloadOnChange: true);
 
 // HOST (Serilog setup with better configuration)
-host.UseSerilog((hostContext, loggerConfiguration) =>
+host.UseSerilog((host, services, logging) =>
 {
-    loggerConfiguration
-        .MinimumLevel.ControlledBy(new Serilog.Core.LoggingLevelSwitch(LogEventLevel.Warning))
+    logging
+        .MinimumLevel.Warning()
         .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Information)
         .MinimumLevel.Override("Serilog.AspNetCore.RequestLoggingMiddleware", LogEventLevel.Information)
 
-        .WriteTo.Async(a => a.Console(
-            outputTemplate:
-            "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff} {Level:u3}] {ClientIp} {ThreadId} {Message:lj} <p:{SourceContext}>{NewLine}{Exception}")
-        )
-        .WriteTo.Async(a => a.File("logs/logs-.log", rollingInterval: RollingInterval.Day,
-            outputTemplate:
-            "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff} {Level:u3}] {ClientIp} {ThreadId} {Message:lj} <p:{SourceContext}>{NewLine}{Exception}")
-        )
-        .Enrich.FromLogContext()
-        .Enrich.WithClientIp()    // Adds client IP information
-        .Enrich.WithThreadId()    // Adds ThreadId for better tracking
-        .Enrich.WithMachineName() // Adds MachineName
-        .ReadFrom.Configuration(hostContext.Configuration)
-        .ReadFrom.Services((IServiceProvider)services);
+        .WriteTo.Async(write =>
+        {
+            write.Console(
+                outputTemplate:
+                "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff} {Level:u3}] {ClientIp}  {ThreadId} {Message:lj} <p:{SourceContext}>{NewLine}{Exception}");
+            write.File("logs/.log", rollingInterval: RollingInterval.Day,
+                outputTemplate:
+                "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff} {Level:u3}] {ClientIp}  {ThreadId} {Message:lj} <p:{SourceContext}>{NewLine}{Exception}");
+        })
+        .ReadFrom.Configuration(host.Configuration)
+        .ReadFrom.Services(services)
+        .Enrich.FromLogContext();
 });
+// 
 
 // MIDDLEWARE
 var app = builder.Build();
@@ -54,10 +53,16 @@ app.UseSerilogRequestLogging(); // Log all HTTP requests
 app.UseRouting(); // Ensure routing is enabled before using middleware
 
 // Health Check endpoint at `/health`
-app.MapHealthChecks("/health", new HealthCheckOptions
+app.UseEndpoints(endpoints =>
 {
-    Predicate = _ => true,
-    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+    // Health Check endpoint
+    endpoints.MapHealthChecks("/health", new HealthCheckOptions
+    {
+        Predicate = _ => true,
+        ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+    });
+
+    // Other endpoints...
 });
 
 // Use Ocelot as middleware
