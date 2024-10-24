@@ -1,51 +1,34 @@
+name: "CodeQL"
 on:
   push:
     branches: [ "main" ]
   pull_request:
+    # The branches below must be a subset of the branches above
     branches: [ "main" ]
   schedule:
-    - cron: '23 3 * * 1' # Runs every Monday at 3:23 AM
+    - cron: '0 1 * * 5'
 
 jobs:
   analyze:
-    name: analyze
+    name: Analyze
     runs-on: ubuntu-latest
-    
-    permissions:
-      security-events: write
-      packages: read
-      actions: read
-      contents: read
-    
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - language: csharp
-            build-mode: manual
-
+        language: [ 'csharp' ]
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      - name: Setup .NET 8
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: '8.0.x' # Ensuring .NET 8 is used
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+        config-file: .github/codeql/codeql-config.yml # advanced configuration file
 
-      - name: Restore .NET dependencies
-        run: dotnet restore
+    - name: Build the code
+      run: |
+        dotnet build Ocelot.Gateway.sln
 
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: ${{ matrix.language }}
-          build-mode: ${{ matrix.build-mode }}
-
-      - name: Build .NET 8 solution
-        run: dotnet build --configuration Release
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-        with:
-          category: "/language:${{ matrix.language }}"
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
