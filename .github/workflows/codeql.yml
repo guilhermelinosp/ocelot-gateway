@@ -8,7 +8,6 @@ on:
 
 jobs:
   analyze-project:
-    name: analyze
     runs-on: 'ubuntu-latest'
     permissions:
       security-events: write
@@ -19,15 +18,27 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-        - language: csharp
-          build-mode: none
+        language: [csharp]
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Set up .NET Core
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.x'  # Adjust to match your project
+
+    - name: Install dependencies
+      run: dotnet restore
+
+    - name: Build the project
+      run: dotnet build --no-restore --configuration Release
+
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
+      with:
+        languages: csharp
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
