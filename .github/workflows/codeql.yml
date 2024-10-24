@@ -1,4 +1,3 @@
-name: "CodeQL"
 on:
   push:
     branches: [ "main" ]
@@ -10,7 +9,7 @@ on:
 
 jobs:
   analyze:
-    name: Analyze
+    name: analyze
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
