@@ -6,12 +6,7 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-
+    runs-on: self-hosted
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -25,9 +20,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: "**/obj/project.assets.json"
-          key: dotnet-dependencies-${{ matrix.os }}-${{ hashFiles('**/project.assets.json') }}
+          key: dotnet-dependencies-${{ runner.os }}-${{ hashFiles('**/project.assets.json') }}
           restore-keys: |
-            dotnet-dependencies-${{ matrix.os }}-
+            dotnet-dependencies-${{ runner.os }}-
 
       - name: Restore dependencies
         run: dotnet restore
